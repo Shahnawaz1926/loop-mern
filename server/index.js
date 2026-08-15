@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth',authRoutes);
 app.use('/api/workspace', workspaceRoutes);
+app.use('/api/feedback',feedbackRoutes);
 
 const PORT = process.env.PORT || 5000;
 
