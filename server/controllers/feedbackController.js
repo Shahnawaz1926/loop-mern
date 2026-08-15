@@ -1,5 +1,7 @@
 const Feedback = require('../models/Feedback');
 
+
+
 // POST /api/feedback - create a single feedback item
 async function createFeedback(req, res) {
   try {
@@ -96,4 +98,66 @@ async function updateFeedbackStatus(req, res) {
   }
 }
 
-module.exports = { createFeedback, getFeedback, updateFeedbackStatus };
+const { parse } = require('csv-parse/sync');
+
+// POST /api/feedback/upload - bulk CSV import
+async function uploadCSV(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
+    }
+
+    const csvText = req.file.buffer.toString('utf-8');
+
+    let records;
+    try {
+      records = parse(csvText, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      });
+    } catch (parseErr) {
+      return res.status(400).json({ error: 'Could not parse CSV file. Check the format.' });
+    }
+
+    const results = {
+      imported: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    const validItems = [];
+
+    records.forEach((row, index) => {
+      const rowNumber = index + 2; // +2 because row 1 is the header, and arrays are 0-indexed
+
+      if (!row.content || !row.channel) {
+        results.failed++;
+        results.errors.push(`Row ${rowNumber}: missing required field (content or channel).`);
+        return;
+      }
+
+      validItems.push({
+        content: row.content,
+        channel: row.channel,
+        customerLabel: row.customer_label || row.customerLabel || undefined,
+        sourceRef: row.source_ref || undefined,
+        workspaceId: req.user.workspaceId,
+        status: 'NEW',
+        createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+      });
+    });
+
+    if (validItems.length > 0) {
+      await Feedback.insertMany(validItems);
+      results.imported = validItems.length;
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error('CSV upload error:', err);
+    res.status(500).json({ error: 'Failed to process CSV upload.' });
+  }
+}
+
+module.exports = { createFeedback, getFeedback, updateFeedbackStatus, uploadCSV };

@@ -1,12 +1,15 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const requireAuth = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
-const { createFeedback, getFeedback, updateFeedbackStatus } = require('../controllers/feedbackController');
+const { createFeedback, getFeedback, updateFeedbackStatus, uploadCSV } = require('../controllers/feedbackController');
 
-// Viewers can only read; Analysts and Admins can create/edit
+const upload = multer({ storage: multer.memoryStorage() });
+
 router.get('/', requireAuth, getFeedback);
 router.post('/', requireAuth, requireRole('ADMIN', 'ANALYST'), createFeedback);
 router.patch('/:id/status', requireAuth, requireRole('ADMIN', 'ANALYST'), updateFeedbackStatus);
+router.post('/upload', requireAuth, requireRole('ADMIN', 'ANALYST'), upload.single('file'), uploadCSV);
 
 module.exports = router;
