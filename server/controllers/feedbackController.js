@@ -160,4 +160,60 @@ async function uploadCSV(req, res) {
   }
 }
 
-module.exports = { createFeedback, getFeedback, updateFeedbackStatus, uploadCSV };
+const SIMULATED_CONTENT = {
+  app_store: [
+    "Five stars, this app changed how our team handles feedback.",
+    "Crashes on startup after the latest update, please fix.",
+    "Wish there was a dark mode option, otherwise solid app.",
+    "The search feature is slow when filtering large datasets.",
+    "Fantastic customer support, resolved my issue in minutes.",
+  ],
+  support_ticket: [
+    "Unable to reset password, the reset link keeps expiring.",
+    "Feature request: bulk delete option for old feedback items.",
+    "Getting a 500 error when uploading files larger than 5MB.",
+    "Account got locked after too many login attempts, need help.",
+    "Billing was charged twice this month, please refund.",
+  ],
+  social_mention: [
+    "Just started using this tool at work, actually pretty solid.",
+    "Anyone else having trouble with the mobile app today?",
+    "Our team switched from a spreadsheet to this and never looked back.",
+    "Customer support response time could be faster honestly.",
+    "Love how clean the dashboard looks compared to competitors.",
+  ],
+};
+
+// POST /api/feedback/simulate/:channel - simulate pulling from an integration
+async function simulateChannel(req, res) {
+  try {
+    const { channel } = req.params;
+
+    if (!SIMULATED_CONTENT[channel]) {
+      return res.status(400).json({
+        error: `Unknown channel. Available: ${Object.keys(SIMULATED_CONTENT).join(', ')}`,
+      });
+    }
+
+    const contentPool = SIMULATED_CONTENT[channel];
+    const itemsToCreate = contentPool.map((content, i) => ({
+      content,
+      channel,
+      customerLabel: `Simulated Customer ${Date.now()}-${i}`,
+      workspaceId: req.user.workspaceId,
+      status: 'NEW',
+    }));
+
+    await Feedback.insertMany(itemsToCreate);
+
+    res.json({
+      message: `Simulated ${itemsToCreate.length} new items from ${channel}.`,
+      imported: itemsToCreate.length,
+    });
+  } catch (err) {
+    console.error('Simulate channel error:', err);
+    res.status(500).json({ error: 'Failed to simulate channel.' });
+  }
+}
+
+module.exports = { createFeedback, getFeedback, updateFeedbackStatus, uploadCSV, simulateChannel };
