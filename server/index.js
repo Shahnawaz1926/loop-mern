@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const themeRoutes = require('./routes/themeRoutes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/auth',authRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/feedback',feedbackRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/themes', themeRoutes);
 
 const PORT = process.env.PORT || 5000;
 
