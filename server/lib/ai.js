@@ -81,4 +81,52 @@ Return a JSON array with ${items.length} objects, in the same order as the items
   return parsed;
 }
 
-module.exports = { classifyFeedback, classifyBatch, EXISTING_THEMES };
+const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
+
+async function embedText(text) {
+  const result = await embeddingModel.embedContent(text);
+  return result.embedding.values;
+}
+
+function cosineSimilarity(a, b) {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function askGrounded(question, contextItems) {
+  const contextText = contextItems
+    .map((item, i) => `[${i + 1}] "${item.content}" (channel: ${item.channel}, sentiment: ${item.sentiment || 'unknown'})`)
+    .join('\n');
+
+  const prompt = `You are answering a question about customer feedback using ONLY the feedback excerpts provided below. Do not invent or assume any feedback that isn't listed here.
+
+Feedback excerpts:
+${contextText}
+
+Question: "${question}"
+
+Instructions:
+- Answer using only the excerpts above.
+- Reference specific excerpt numbers like [1], [2] when citing evidence.
+- If the excerpts don't contain enough information to answer, say so clearly rather than guessing.
+- Keep your answer concise, 2-4 sentences.
+
+Return ONLY valid JSON, no markdown fences, in this shape:
+{
+  "answer": "<your answer text, with [n] citations inline>",
+  "citedIndexes": [<array of excerpt numbers you actually cited, e.g. [1, 3]>]
+}`;
+
+  const result = await model.generateContent(prompt);
+  let text = result.response.text().trim();
+  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+  return JSON.parse(text);
+}
+
+module.exports = { classifyFeedback, classifyBatch, embedText, cosineSimilarity, askGrounded, EXISTING_THEMES };
+

@@ -1,13 +1,11 @@
 const Feedback = require('../models/Feedback');
 const Theme = require('../models/Theme');
-const { classifyFeedback } = require('../lib/ai');
+const { classifyFeedback, classifyBatch, embedText, cosineSimilarity, askGrounded } = require('../lib/ai');
 
-// Helper: classify a feedback item and update it with results
 async function classifyAndUpdate(feedbackDoc, workspaceId) {
   try {
     const result = await classifyFeedback(feedbackDoc.content);
 
-    // Resolve theme names to Theme documents, creating new ones if they don't exist
     const themeRefs = [];
     for (const themeName of result.themes) {
       let theme = await Theme.findOne({ name: themeName, workspaceId });
@@ -20,8 +18,15 @@ async function classifyAndUpdate(feedbackDoc, workspaceId) {
     feedbackDoc.sentiment = result.sentiment;
     feedbackDoc.sentimentScore = result.sentimentScore;
     feedbackDoc.themes = themeRefs;
-    await feedbackDoc.save();
 
+    // Also generate embedding for Ask LOOP retrieval
+    try {
+      feedbackDoc.embedding = await embedText(feedbackDoc.content);
+    } catch (embedErr) {
+      console.error(`Embedding failed for feedback ${feedbackDoc._id}:`, embedErr.message);
+    }
+
+    await feedbackDoc.save();
     return true;
   } catch (err) {
     console.error(`Classification failed for feedback ${feedbackDoc._id}:`, err.message);
@@ -45,6 +50,7 @@ async function createFeedback(req, res) {
       sourceRef,
       workspaceId: req.user.workspaceId,
       status: 'NEW',
+
     });
 
     // Classify asynchronously - don't block the response on it
@@ -226,8 +232,6 @@ async function simulateChannel(req, res) {
   }
 }
 
-const { classifyBatch } = require('../lib/ai');
-
 // Helper: classify a batch of items and update them
 async function classifyBatchAndUpdate(docs, workspaceId) {
   try {
@@ -289,6 +293,51 @@ async function backfillClassify(req, res) {
   }
 }
 
+// POST /api/feedback/ask - retrieval-grounded Q&A
+async function askLoop(req, res) {
+  try {
+    const { question } = req.body;
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required.' });
+    }
+
+    // Get all embedded feedback in this workspace
+    const allFeedback = await Feedback.find({
+      workspaceId: req.user.workspaceId,
+      embedding: { $exists: true, $ne: [] },
+    });
+
+    if (allFeedback.length === 0) {
+      return res.json({
+        answer: "There's no classified feedback data available yet to answer questions from. Try running the backfill classification first.",
+        sources: [],
+      });
+    }
+
+    const questionEmbedding = await embedText(question);
+
+    const scored = allFeedback.map((item) => ({
+      item,
+      score: cosineSimilarity(questionEmbedding, item.embedding),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+    const topK = scored.slice(0, 8).map((s) => s.item);
+
+    const result = await askGrounded(question, topK);
+
+    const sources = (result.citedIndexes || [])
+      .map((idx) => topK[idx - 1])
+      .filter(Boolean)
+      .map((item) => ({ id: item._id, content: item.content, channel: item.channel }));
+
+    res.json({ answer: result.answer, sources });
+  } catch (err) {
+    console.error('Ask LOOP error:', err);
+    res.status(500).json({ error: 'Failed to answer question.' });
+  }
+}
+
 module.exports = {
   createFeedback,
   getFeedback,
@@ -296,5 +345,6 @@ module.exports = {
   reclassifyFeedback,
   uploadCSV,
   simulateChannel,
-backfillClassify,
+  backfillClassify,
+  askLoop,
 };
