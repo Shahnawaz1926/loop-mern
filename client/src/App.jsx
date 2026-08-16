@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Inbox from './pages/Inbox'
+import Trends from './pages/Trends'
 
 function App() {
   return (
@@ -28,6 +29,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/trends"
+          element={
+            <ProtectedRoute>
+               <Trends />
+            </ProtectedRoute>
+         }
+       />
         <Route path="/" element={<Navigate to="/signup" replace />} />
       </Routes>
     </AuthProvider>

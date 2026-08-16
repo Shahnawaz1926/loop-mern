@@ -40,6 +40,10 @@ export default function Dashboard() {
             <Link to="/inbox" className="text-sm text-purple-400 hover:text-purple-300 transition">
               Feedback Inbox →
             </Link>
+
+            <Link to="/trends" className="text-sm text-purple-400 hover:text-purple-300 transition">
+            Trends →
+           </Link>
             <button onClick={logout} className="text-sm text-gray-400 hover:text-white transition">
               Log out
             </button>

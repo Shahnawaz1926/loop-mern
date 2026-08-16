@@ -35,3 +35,22 @@ export function getAnalyticsSummary(token) {
     headers: { Authorization: `Bearer ${token}` },
   })
 }
+
+export function getThemes(token) {
+  return apiRequest('/api/themes', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function getThemeTrends(token) {
+  return apiRequest('/api/themes/trends', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function getThemeFeedback(token, themeId, params = {}) {
+  const query = new URLSearchParams(params).toString()
+  return apiRequest(`/api/themes/${themeId}/feedback?${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
