@@ -1,0 +1,171 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { getFeedback, updateFeedbackStatus } from '../lib/api'
+
+const STATUS_COLORS = {
+  NEW: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+  REVIEWED: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+  ACTIONED: 'bg-green-500/20 text-green-300 border-green-500/40',
+}
+
+const SENTIMENT_COLORS = {
+  POS: 'text-green-400',
+  NEU: 'text-gray-400',
+  NEG: 'text-red-400',
+}
+
+export default function Inbox() {
+  const { token } = useAuth()
+  const [items, setItems] = useState([])
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+
+  const loadFeedback = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = { page, limit: 15 }
+      if (search) params.search = search
+      const data = await getFeedback(token, params)
+      setItems(data.items)
+      setPagination(data.pagination)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [token, page, search])
+
+  useEffect(() => {
+    loadFeedback()
+  }, [loadFeedback])
+
+  async function handleStatusChange(id, newStatus) {
+    // Optimistic update - reflect the change immediately, before the server responds
+    setItems((prev) =>
+      prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
+    )
+    try {
+      await updateFeedbackStatus(token, id, newStatus)
+    } catch (err) {
+      setError('Failed to update status: ' + err.message)
+      loadFeedback() // revert by re-fetching real state
+    }
+  }
+
+  function handleSearchSubmit(e) {
+    e.preventDefault()
+    setPage(1)
+    loadFeedback()
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Feedback Inbox</h1>
+          <span className="text-gray-400 text-sm">{pagination.total} total items</span>
+        </div>
+
+        <form onSubmit={handleSearchSubmit} className="mb-6 flex gap-2">
+          <input
+            type="text"
+            placeholder="Search feedback content..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 focus:outline-none focus:border-purple-500"
+          />
+          <button
+            type="submit"
+            className="bg-purple-600 hover:bg-purple-700 rounded px-4 py-2 font-medium transition"
+          >
+            Search
+          </button>
+        </form>
+
+        {error && (
+          <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded px-3 py-2 mb-4">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="text-gray-400 text-center py-12">Loading feedback...</div>
+        ) : items.length === 0 ? (
+          <div className="text-gray-400 text-center py-12">No feedback items found.</div>
+        ) : (
+          <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-750 border-b border-gray-700 text-gray-400 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Content</th>
+                  <th className="px-4 py-3 font-medium">Channel</th>
+                  <th className="px-4 py-3 font-medium">Sentiment</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item._id} className="border-b border-gray-750 hover:bg-gray-750/50 transition">
+                    <td className="px-4 py-3 max-w-md">
+                      <p className="truncate">{item.content}</p>
+                      {item.customerLabel && (
+                        <p className="text-gray-500 text-xs mt-0.5">{item.customerLabel}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">{item.channel}</td>
+                    <td className="px-4 py-3">
+                      <span className={SENTIMENT_COLORS[item.sentiment] || 'text-gray-500'}>
+                        {item.sentiment || '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={item.status}
+                        onChange={(e) => handleStatusChange(item._id, e.target.value)}
+                        className={`text-xs rounded border px-2 py-1 bg-gray-800 cursor-pointer ${STATUS_COLORS[item.status]}`}
+                      >
+                        <option value="NEW">NEW</option>
+                        <option value="REVIEWED">REVIEWED</option>
+                        <option value="ACTIONED">ACTIONED</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {pagination.totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded disabled:opacity-40 hover:bg-gray-700 transition text-sm"
+            >
+              Previous
+            </button>
+            <span className="text-gray-400 text-sm">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+              disabled={page >= pagination.totalPages}
+              className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded disabled:opacity-40 hover:bg-gray-700 transition text-sm"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
