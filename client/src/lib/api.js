@@ -29,3 +29,9 @@ export function updateFeedbackStatus(token, id, status) {
     body: JSON.stringify({ status }),
   })
 }
+
+export function getAnalyticsSummary(token) {
+  return apiRequest('/api/analytics/summary', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
