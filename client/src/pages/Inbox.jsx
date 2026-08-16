@@ -14,6 +14,8 @@ const SENTIMENT_COLORS = {
   NEG: 'text-red-400',
 }
 
+const CHANNELS = ['support_ticket', 'app_store', 'nps_survey', 'sales_call', 'community_post', 'social_mention']
+
 export default function Inbox() {
   const { token } = useAuth()
   const [items, setItems] = useState([])
@@ -23,12 +25,20 @@ export default function Inbox() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
+  const [channelFilter, setChannelFilter] = useState('')
+  const [sentimentFilter, setSentimentFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+
   const loadFeedback = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
       const params = { page, limit: 15 }
       if (search) params.search = search
+      if (channelFilter) params.channel = channelFilter
+      if (sentimentFilter) params.sentiment = sentimentFilter
+      if (statusFilter) params.status = statusFilter
+
       const data = await getFeedback(token, params)
       setItems(data.items)
       setPagination(data.pagination)
@@ -37,14 +47,13 @@ export default function Inbox() {
     } finally {
       setLoading(false)
     }
-  }, [token, page, search])
+  }, [token, page, search, channelFilter, sentimentFilter, statusFilter])
 
   useEffect(() => {
     loadFeedback()
   }, [loadFeedback])
 
   async function handleStatusChange(id, newStatus) {
-    // Optimistic update - reflect the change immediately, before the server responds
     setItems((prev) =>
       prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
     )
@@ -52,7 +61,7 @@ export default function Inbox() {
       await updateFeedbackStatus(token, id, newStatus)
     } catch (err) {
       setError('Failed to update status: ' + err.message)
-      loadFeedback() // revert by re-fetching real state
+      loadFeedback()
     }
   }
 
@@ -62,6 +71,21 @@ export default function Inbox() {
     loadFeedback()
   }
 
+  function handleFilterChange(setter, value) {
+    setter(value)
+    setPage(1) // reset to page 1 whenever a filter changes
+  }
+
+  function clearFilters() {
+    setChannelFilter('')
+    setSentimentFilter('')
+    setStatusFilter('')
+    setSearch('')
+    setPage(1)
+  }
+
+  const hasActiveFilters = channelFilter || sentimentFilter || statusFilter || search
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
@@ -70,7 +94,7 @@ export default function Inbox() {
           <span className="text-gray-400 text-sm">{pagination.total} total items</span>
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="mb-6 flex gap-2">
+        <form onSubmit={handleSearchSubmit} className="mb-4 flex gap-2">
           <input
             type="text"
             placeholder="Search feedback content..."
@@ -85,6 +109,50 @@ export default function Inbox() {
             Search
           </button>
         </form>
+
+        <div className="flex flex-wrap gap-3 mb-6 items-center">
+          <select
+            value={channelFilter}
+            onChange={(e) => handleFilterChange(setChannelFilter, e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-purple-500"
+          >
+            <option value="">All channels</option>
+            {CHANNELS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <select
+            value={sentimentFilter}
+            onChange={(e) => handleFilterChange(setSentimentFilter, e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-purple-500"
+          >
+            <option value="">All sentiment</option>
+            <option value="POS">Positive</option>
+            <option value="NEU">Neutral</option>
+            <option value="NEG">Negative</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-purple-500"
+          >
+            <option value="">All statuses</option>
+            <option value="NEW">New</option>
+            <option value="REVIEWED">Reviewed</option>
+            <option value="ACTIONED">Actioned</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-gray-400 hover:text-white transition underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
 
         {error && (
           <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded px-3 py-2 mb-4">
