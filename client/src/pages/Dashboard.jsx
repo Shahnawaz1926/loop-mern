@@ -48,6 +48,10 @@ export default function Dashboard() {
            <Link to="/ask" className="text-sm text-purple-400 hover:text-purple-300 transition">
             Ask LOOP →
             </Link>
+
+            <Link to="/reports" className="text-sm text-purple-400 hover:text-purple-300 transition">
+            Reports →
+             </Link>
             <button onClick={logout} className="text-sm text-gray-400 hover:text-white transition">
               Log out
             </button>

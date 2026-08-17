@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Inbox from './pages/Inbox'
 import Trends from './pages/Trends'
 import Ask from './pages/Ask'
+import Reports from './pages/Reports'
 
 function App() {
   return (
@@ -43,6 +44,13 @@ function App() {
          element={<ProtectedRoute>
           <Ask />
           </ProtectedRoute>}
+        />
+
+        <Route
+         path="/reports"
+          element={<ProtectedRoute>
+            <Reports />
+            </ProtectedRoute>}
         />
 
         <Route path="/" element={<Navigate to="/signup" replace />} />

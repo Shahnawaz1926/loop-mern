@@ -62,3 +62,23 @@ export function askLoop(token, question) {
     body: JSON.stringify({ question }),
   })
 }
+
+export function generateReport(token, days = 30) {
+  return apiRequest('/api/reports/generate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ days }),
+  })
+}
+
+export function getReports(token) {
+  return apiRequest('/api/reports', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export function getReportById(token, id) {
+  return apiRequest(`/api/reports/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
