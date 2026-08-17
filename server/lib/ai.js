@@ -128,5 +128,29 @@ Return ONLY valid JSON, no markdown fences, in this shape:
   return JSON.parse(text);
 }
 
-module.exports = { classifyFeedback, classifyBatch, embedText, cosineSimilarity, askGrounded, EXISTING_THEMES };
+async function generateReportNarrative(stats) {
+  const prompt = `You are writing a Voice-of-Customer report for a product team, based on real data below. Use ONLY the numbers and quotes provided - do not invent statistics.
+
+Period: ${stats.periodLabel}
+Total feedback items: ${stats.total}
+Sentiment: ${stats.sentimentPositive} positive, ${stats.sentimentNeutral} neutral, ${stats.sentimentNegative} negative
+Top themes this period: ${stats.topThemes.map(t => `${t.name} (${t.count} items)`).join(', ')}
+Sample verbatim quotes:
+${stats.quotes.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
+
+Write a concise executive summary (3-4 sentences) covering the overall sentiment trend and what stands out this period, then list 3-4 recommended actions for the product team based on the themes above.
+
+Return ONLY valid JSON, no markdown fences, in this shape:
+{
+  "executiveSummary": "<3-4 sentence summary>",
+  "recommendedActions": [<array of 3-4 short actionable strings>]
+}`;
+
+  const result = await model.generateContent(prompt);
+  let text = result.response.text().trim();
+  text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+  return JSON.parse(text);
+}
+
+module.exports = { classifyFeedback, classifyBatch, embedText, cosineSimilarity, askGrounded, generateReportNarrative, EXISTING_THEMES };
 

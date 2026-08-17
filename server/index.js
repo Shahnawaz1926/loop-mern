@@ -8,6 +8,7 @@ const workspaceRoutes = require('./routes/workspaceRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const themeRoutes = require('./routes/themeRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/workspace', workspaceRoutes);
 app.use('/api/feedback',feedbackRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/themes', themeRoutes);
+app.use('/api/reports', reportRoutes);
 
 const PORT = process.env.PORT || 5000;
 
