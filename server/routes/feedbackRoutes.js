@@ -3,7 +3,7 @@ const multer = require('multer');
 const router = express.Router();
 const requireAuth = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
-const { createFeedback, getFeedback, updateFeedbackStatus,reclassifyFeedback, uploadCSV, simulateChannel, backfillClassify, askLoop} = require('../controllers/feedbackController');
+const { createFeedback, getFeedback, updateFeedbackStatus,reclassifyFeedback, uploadCSV, simulateChannel, backfillClassify, askLoop, backfillEmbeddings} = require('../controllers/feedbackController');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -15,5 +15,6 @@ router.post('/simulate/:channel', requireAuth, requireRole('ADMIN', 'ANALYST'), 
 router.post('/:id/reclassify', requireAuth, requireRole('ADMIN', 'ANALYST'), reclassifyFeedback);
 router.post('/backfill-classify', requireAuth, requireRole('ADMIN'), backfillClassify);
 router.post('/ask', requireAuth, askLoop);
+router.post('/backfill-embeddings', requireAuth, requireRole('ADMIN'), backfillEmbeddings);
 
 module.exports = router;

@@ -338,6 +338,39 @@ async function askLoop(req, res) {
   }
 }
 
+// POST /api/feedback/backfill-embeddings - embed items that don't have embeddings yet
+async function backfillEmbeddings(req, res) {
+  try {
+    const unembedded = await Feedback.find({
+      workspaceId: req.user.workspaceId,
+      $or: [{ embedding: { $exists: false } }, { embedding: { $size: 0 } }],
+    }).limit(40);
+
+    if (unembedded.length === 0) {
+      return res.json({ message: 'No items need embeddings.', processed: 0 });
+    }
+
+    res.json({
+      message: `Embedding backfill started for ${unembedded.length} items in the background.`,
+      processed: unembedded.length,
+    });
+
+    for (const doc of unembedded) {
+      try {
+        doc.embedding = await embedText(doc.content);
+        await doc.save();
+      } catch (err) {
+        console.error(`Embedding failed for ${doc._id}:`, err.message);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    console.log(`Embedding backfill complete: ${unembedded.length} items processed.`);
+  } catch (err) {
+    console.error('Embedding backfill error:', err);
+  }
+}
+
 module.exports = {
   createFeedback,
   getFeedback,
@@ -347,4 +380,5 @@ module.exports = {
   simulateChannel,
   backfillClassify,
   askLoop,
+   backfillEmbeddings,
 };

@@ -44,6 +44,10 @@ export default function Dashboard() {
             <Link to="/trends" className="text-sm text-purple-400 hover:text-purple-300 transition">
             Trends →
            </Link>
+
+           <Link to="/ask" className="text-sm text-purple-400 hover:text-purple-300 transition">
+            Ask LOOP →
+            </Link>
             <button onClick={logout} className="text-sm text-gray-400 hover:text-white transition">
               Log out
             </button>

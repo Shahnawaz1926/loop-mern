@@ -54,3 +54,11 @@ export function getThemeFeedback(token, themeId, params = {}) {
     headers: { Authorization: `Bearer ${token}` },
   })
 }
+
+export function askLoop(token, question) {
+  return apiRequest('/api/feedback/ask', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ question }),
+  })
+}
