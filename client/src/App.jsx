@@ -8,6 +8,7 @@ import Inbox from './pages/Inbox'
 import Trends from './pages/Trends'
 import Ask from './pages/Ask'
 import Reports from './pages/Reports'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -52,6 +53,8 @@ function App() {
             <Reports />
             </ProtectedRoute>}
         />
+
+        <Route path="*" element={<NotFound />} />
 
         <Route path="/" element={<Navigate to="/signup" replace />} />
       </Routes>
