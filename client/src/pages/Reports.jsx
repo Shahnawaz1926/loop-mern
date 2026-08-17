@@ -97,9 +97,17 @@ export default function Reports() {
           </div>
 
           <div className="col-span-2">
-            {selectedReport ? (
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6" id="report-content">
-                <h2 className="font-bold text-lg mb-1">{selectedReport.title}</h2>
+               {selectedReport ? (
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6" id="report-content">
+                 <div className="flex justify-between items-start mb-1">
+                <h2 className="font-bold text-lg">{selectedReport.title}</h2>
+                 <button
+            onClick={() => window.print()}
+           className="print:hidden text-xs bg-gray-700 hover:bg-gray-600 rounded px-3 py-1.5 transition"
+          >
+          Export / Print
+        </button>
+        </div>
                 <p className="text-gray-500 text-xs mb-4">{selectedReport.contentJson.periodLabel}</p>
 
                 <div className="grid grid-cols-3 gap-3 mb-5">
