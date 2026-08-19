@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getFeedback, updateFeedbackStatus } from '../lib/api'
+import { getFeedback, updateFeedbackStatus, uploadCSV, simulateChannel } from '../lib/api'
 
 const STATUS_COLORS = {
   NEW: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
@@ -29,6 +29,9 @@ export default function Inbox() {
   const [sentimentFilter, setSentimentFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
+  const [uploading, setUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState(null)
+
   const loadFeedback = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -52,6 +55,32 @@ export default function Inbox() {
   useEffect(() => {
     loadFeedback()
   }, [loadFeedback])
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    setUploadResult(null)
+    try {
+      const result = await uploadCSV(token, file)
+      setUploadResult(result)
+      loadFeedback()
+    } catch (err) {
+      setError('Upload failed: ' + err.message)
+    } finally {
+      setUploading(false)
+      e.target.value = '' // reset file input
+    }
+  }
+
+  async function handleSimulate(channel) {
+    try {
+      await simulateChannel(token, channel)
+      loadFeedback()
+    } catch (err) {
+      setError('Simulate failed: ' + err.message)
+    }
+  }
 
   async function handleStatusChange(id, newStatus) {
     setItems((prev) =>
@@ -109,6 +138,36 @@ export default function Inbox() {
             Search
           </button>
         </form>
+
+        <div className="flex flex-wrap gap-3 mb-4 items-center">
+          <label className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-3 py-1.5 text-sm cursor-pointer transition">
+            {uploading ? 'Uploading...' : 'Upload CSV'}
+            <input type="file" accept=".csv" onChange={handleFileUpload} disabled={uploading} className="hidden" />
+          </label>
+          <button
+            onClick={() => handleSimulate('app_store')}
+            className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-3 py-1.5 text-sm transition"
+          >
+            Simulate App Store
+          </button>
+          <button
+            onClick={() => handleSimulate('support_ticket')}
+            className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded px-3 py-1.5 text-sm transition"
+          >
+            Simulate Support Tickets
+          </button>
+        </div>
+
+        {uploadResult && (
+          <div className="bg-green-900/30 border border-green-700 text-green-300 text-sm rounded px-3 py-2 mb-4">
+            Imported {uploadResult.imported}, failed {uploadResult.failed}
+            {uploadResult.errors.length > 0 && (
+              <ul className="mt-1 text-xs text-green-400">
+                {uploadResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-3 mb-6 items-center">
           <select

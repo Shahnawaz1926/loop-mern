@@ -82,3 +82,24 @@ export function getReportById(token, id) {
     headers: { Authorization: `Bearer ${token}` },
   })
 }
+
+export async function uploadCSV(token, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const res = await fetch(`${API_URL}/api/feedback/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }, // no Content-Type - browser sets it with boundary for FormData
+    body: formData,
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Upload failed')
+  return data
+}
+
+export function simulateChannel(token, channel) {
+  return apiRequest(`/api/feedback/simulate/${channel}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
