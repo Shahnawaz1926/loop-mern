@@ -71,6 +71,23 @@ Gemini API (classification, embeddings, grounded Q&A, report narrative generatio
 
 ---
 
+## Screenshots
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Feedback Inbox
+![Feedback Inbox](screenshots/inbox.png)
+
+### Ask LOOP
+![Ask LOOP](screenshots/ask-loop.png)
+
+### Theme Trends
+![Theme Trends](screenshots/trends.png)
+
+### Voice of Customer Report
+![VoC Report](screenshots/voc-report.png)
+
 ## Local setup
 
 ### Prerequisites
